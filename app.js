@@ -9,11 +9,6 @@ angular.module('myApp', [
 ])
 
 .run(function($rootScope, $location, AuthFactory) {
-	$rootScope.signIn = function() {
-	    console.log("Sign in");
-        var provider = new firebase.auth.GoogleAuthProvider();
-        firebase.auth().signInWithPopup(provider);
-	};
 	$rootScope.signOut = function() {
     	console.log("logout");
     	firebase.auth().signOut();

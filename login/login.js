@@ -2,20 +2,20 @@
 
 angular.module('myApp.view1', ['ngRoute', 'fbAuth'])
 
-.config(['$routeProvider', '$authProvider', function($routeProvider, $authProvider) {
-  $routeProvider.when('/login', {
-    templateUrl: 'login/login.html',
-    controller: 'View1Ctrl',
-    resolve: $authProvider.resolve
-  });
+.config(['$routeProvider', function($routeProvider) {
+    $routeProvider.when('/login', {
+        templateUrl: 'login/login.html',
+        controller: 'View1Ctrl'
+    });
 }])
 
-.controller('View1Ctrl', function($scope, $rootScope, $location, user) {
+.controller('View1Ctrl', function($scope, $rootScope, $location) {
     console.log('View1Ctrl');
-    console.log(user);
-    if (user) {
-        $location.path( "/view2" );
-    }
+	$scope.signIn = function() {
+	    console.log("Sign in");
+        var provider = new firebase.auth.GoogleAuthProvider();
+        firebase.auth().signInWithPopup(provider);
+	};
     $scope.test = function() {
         console.log("test");
     };

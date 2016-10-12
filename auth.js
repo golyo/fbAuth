@@ -5,26 +5,43 @@ angular.module('fbAuth', ['ngRoute'])
 
 .config(['$routeProvider', '$authProvider', function($routeProvider, $authProvider, $rootScope, $location) {
     console.log('firbase.auth.config');
-}])
+ }])
 
 .run(function($rootScope, $location) {
+    $rootScope.$on('$routeChangeError', function (event, current, previous, rejection) {
+        console.log("Rejection reason: " + rejection);
+        $location.path('/login');
+    });
 })
 
 ;
 
 
 function authProvider() {
+    console.log("authProvider");
     var fbAuth = firebase.auth();
     var loginPath = '/login';
+    var getUser = function(fbUser) {
+        return {
+            uid: fbUser.uid,
+            email: fbUser.email,
+            photoURL: fbUser.photoURL,
+            displayName: fbUser.displayName
+        };
+    }
     var userPromise = new Promise(function (resolve, reject) {
          if (fbAuth.user) {
               console.log("loggedInUser exists");
-              resolve(fbAuth.user);
+              resolve(getUser(fbAuth.user));
          } else {
-              firebase.auth().onAuthStateChanged(function(user) {
-                   console.log("onAuthStateChanged");
-                   console.log(user);
-                   resolve(user);
+              fbAuth.onAuthStateChanged(function(user) {
+                   console.log("onAuthStateChanged " + (user != null));
+                   if (user) {
+                       resolve(getUser(user));
+                   } else {
+                       //resolve(null);
+                       reject("notLoggedIn");
+                   }
               });
          }
     });
@@ -39,12 +56,12 @@ function authProvider() {
              firebase.auth().signOut();
          },
          resolve: {
-              user : function() {
-                   return userPromise;
-              }
+              user : ['$q', function($q) {
+                  return userPromise;
+              }]
          },
          $get: function () {
-              return loggedInUser;
+              return fbAuth.user ? getUser(fbAuth.user) : null;
          }
     }
 };
