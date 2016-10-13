@@ -7,10 +7,12 @@ angular.module('fbAuth', ['ngRoute'])
     console.log('firbase.auth.config');
  }])
 
-.run(function($rootScope, $location) {
+.run(function($rootScope, $location, $auth) {
     $rootScope.$on('$routeChangeError', function (event, current, previous, rejection) {
-        console.log("Rejection reason: " + rejection);
-        $location.path('/login');
+        console.log("$routeChangeError, Rejection reason: " + rejection);
+        if ("notLoggedIn" == rejection && current.originalPath != $auth.getLoginPath()) {
+            $location.path($auth.getLoginPath());
+        }
     });
 })
 
@@ -18,52 +20,66 @@ angular.module('fbAuth', ['ngRoute'])
 
 
 function authProvider() {
-    console.log("authProvider");
-    var user;
-    var fbAuth = firebase.auth();
+    console.log("init authProvider");
+    var appUser, deferred, isChecked;
     var loginPath = '/login';
-    var initUser = function(fbUser) {
-        user = {
+
+    var fbAuth = firebase.auth();
+    fbAuth.onAuthStateChanged(function(fbUser) {
+        console.log("fbAuth.onAuthStateChanged: " + (fbUser != null));
+        appUser = fbUser ? {
             uid: fbUser.uid,
             email: fbUser.email,
             photoURL: fbUser.photoURL,
             displayName: fbUser.displayName
-        };
-    }
-    var userPromise = new Promise(function (resolve, reject) {
-         if (user) {
-              console.log("loggedInUser exists");
-              resolve(user);
-         } else {
-              fbAuth.onAuthStateChanged(function(fbUser) {
-                   console.log("onAuthStateChanged " + (fbUser != null));
-                   if (fbUser) {
-                       initUser(fbUser);
-                       resolve(user);
-                   } else {
-                       user = null;
-                       reject("notLoggedIn");
-                   }
-              });
-         }
+        } : null;
+        if (deferred) {
+            if (fbUser) {
+                deferred.resolve(appUser);
+            } else {
+                deferred.reject("notLoggedIn");
+            }
+            deferred = null;
+        }
+        isChecked = true;
     });
-    return {
-         setLoginPath: function (value) {
-              loginPath = value;
-         },
-         getLoginPath: function () {
-              return loginPath;
-         },
-         signOut : function () {
-             firebase.auth().signOut();
-         },
-         resolve: {
-              user : ['$q', function($q) {
-                  return userPromise;
-              }]
-         },
-         $get: function () {
-              return user;
-         }
-    }
+
+    this.setLoginPath =  function (value) {
+        loginPath = value;
+    };
+    this.resolve = {
+        user : ['$q', '$location', function($q, $location) {
+            if (isChecked) {
+                if (appUser) {
+                    console.log("user already logged in");
+                    return appUser;
+                } else {
+                    console.log("user not logged in");
+                    throw "notLoggedIn";
+                }
+            } else {
+                console.log("wait for auth result");
+                deferred = $q.defer();
+                return deferred.promise;
+            }
+        }]
+    };
+    this.$get = ["$location", function ($location) {
+        return {
+            login: function() {
+                var aa = $location;
+                var provider = new firebase.auth.GoogleAuthProvider();
+                fbAuth.signInWithPopup(provider);
+            },
+            logout: function() {
+                appUser = null;
+                fbAuth.signOut();
+                $location.path(loginPath);
+            },
+            getLoginPath: function() {
+                return loginPath;
+            },
+            user : appUser
+        };
+    }];
 };
