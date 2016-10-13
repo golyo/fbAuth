@@ -5,7 +5,8 @@ angular.module('myApp', [
   'ngRoute',
   'fbAuth',
   'myApp.view1',
-  'myApp.view2'
+  'myApp.view2',
+  'myApp.view3'
 ])
 
 .run(function($rootScope, $location, AuthFactory) {

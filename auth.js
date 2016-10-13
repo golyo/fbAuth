@@ -19,10 +19,11 @@ angular.module('fbAuth', ['ngRoute'])
 
 function authProvider() {
     console.log("authProvider");
+    var user;
     var fbAuth = firebase.auth();
     var loginPath = '/login';
-    var getUser = function(fbUser) {
-        return {
+    var initUser = function(fbUser) {
+        user = {
             uid: fbUser.uid,
             email: fbUser.email,
             photoURL: fbUser.photoURL,
@@ -30,16 +31,17 @@ function authProvider() {
         };
     }
     var userPromise = new Promise(function (resolve, reject) {
-         if (fbAuth.user) {
+         if (user) {
               console.log("loggedInUser exists");
-              resolve(getUser(fbAuth.user));
+              resolve(user);
          } else {
-              fbAuth.onAuthStateChanged(function(user) {
-                   console.log("onAuthStateChanged " + (user != null));
-                   if (user) {
-                       resolve(getUser(user));
+              fbAuth.onAuthStateChanged(function(fbUser) {
+                   console.log("onAuthStateChanged " + (fbUser != null));
+                   if (fbUser) {
+                       initUser(fbUser);
+                       resolve(user);
                    } else {
-                       //resolve(null);
+                       user = null;
                        reject("notLoggedIn");
                    }
               });
@@ -61,7 +63,7 @@ function authProvider() {
               }]
          },
          $get: function () {
-              return fbAuth.user ? getUser(fbAuth.user) : null;
+              return user;
          }
     }
 };
