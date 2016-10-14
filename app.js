@@ -9,7 +9,11 @@ angular.module('myApp', [
   'myApp.view3'
 ])
 
-.run(function($rootScope, $location) {
+.run(function($rootScope, $location, authService) {
+    $rootScope.logout = function() {
+        authService.logout();
+        $location.path("/login");
+    };
 
 })
 

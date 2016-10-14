@@ -17,7 +17,4 @@ angular.module('myApp.view2', ['ngRoute', 'fbAuth'])
 .controller('View2Ctrl', function($scope, $location, authService, user) {
     console.log('View2Ctrl');
     console.log(user);
-    $scope.logout = function() {
-        authService.logout();
-    };
 });

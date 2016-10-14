@@ -25,6 +25,7 @@ angular.module('fbAuth', ['ngRoute'])
             photoURL: fbUser.photoURL,
             displayName: fbUser.displayName
         } : null;
+        console.log(appUser);
         if (deferred) {
             if (fbUser) {
                 deferred.resolve(appUser);
@@ -36,17 +37,20 @@ angular.module('fbAuth', ['ngRoute'])
             deferred = null;
         }
         isChecked = true;
-        $rootScope.$broadcast('$fbAuthStateChanged', appUser);
+        $rootScope.$emit('$fbAuthStateChanged', appUser);
+    }, function(err) {
+        console.log("auth error");
+        console.log(err);
     });
 
     return {
         getUser: function(skipCheck) {
             if (isChecked) {
                 if (appUser) {
-                    console.log("user already logged in");
+                    console.log("user already logged in ");
                     return appUser;
                 } else {
-                    console.log("user not logged in");
+                    console.log("user not logged in " + skipCheck);
                     if (skipCheck) {
                         return null;
                     } else {
