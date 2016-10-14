@@ -9,8 +9,8 @@ angular.module('myApp', [
   'myApp.view3'
 ])
 
-.run(function($rootScope, $location, $auth) {
-	$rootScope.signOut = $auth.logout;
+.run(function($rootScope, $location) {
+
 })
 
 .config(['$locationProvider', '$routeProvider', function($locationProvider, $routeProvider, $rootScope) {

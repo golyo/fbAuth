@@ -1,30 +1,22 @@
 
 angular.module('fbAuth', ['ngRoute'])
 
-.provider('$auth', authProvider)
-
-.config(['$routeProvider', '$authProvider', function($routeProvider, $authProvider, $rootScope, $location) {
-    console.log('firbase.auth.config');
- }])
-
-.run(function($rootScope, $location, $auth) {
+.run(function($rootScope, $location, authService) {
     $rootScope.$on('$routeChangeError', function (event, current, previous, rejection) {
         console.log("$routeChangeError, Rejection reason: " + rejection);
-        if ("notLoggedIn" == rejection && current.originalPath != $auth.getLoginPath()) {
-            $location.path($auth.getLoginPath());
+        if ("notLoggedIn" == rejection && current.originalPath != authService.getLoginPath()) {
+            $location.path(authService.getLoginPath());
         }
     });
 })
 
-;
+.factory("authService", function($rootScope, $q){
+    console.log("fbAuth factory");
 
-
-function authProvider() {
-    console.log("init authProvider");
-    var appUser, deferred, isChecked;
+    var appUser, deferred, isChecked, skipUserCheck;
     var loginPath = '/login';
-
     var fbAuth = firebase.auth();
+
     fbAuth.onAuthStateChanged(function(fbUser) {
         console.log("fbAuth.onAuthStateChanged: " + (fbUser != null));
         appUser = fbUser ? {
@@ -36,50 +28,49 @@ function authProvider() {
         if (deferred) {
             if (fbUser) {
                 deferred.resolve(appUser);
+            } else if (skipUserCheck) {
+                deferred.resolve(null);
             } else {
                 deferred.reject("notLoggedIn");
             }
             deferred = null;
         }
         isChecked = true;
+        $rootScope.$broadcast('$fbAuthStateChanged', appUser);
     });
 
-    this.setLoginPath =  function (value) {
-        loginPath = value;
-    };
-    this.resolve = {
-        user : ['$q', '$location', function($q, $location) {
+    return {
+        getUser: function(skipCheck) {
             if (isChecked) {
                 if (appUser) {
                     console.log("user already logged in");
                     return appUser;
                 } else {
                     console.log("user not logged in");
-                    throw "notLoggedIn";
+                    if (skipCheck) {
+                        return null;
+                    } else {
+                        throw "notLoggedIn";
+                    }
                 }
             } else {
                 console.log("wait for auth result");
+                skipUserCheck = skipCheck;
                 deferred = $q.defer();
                 return deferred.promise;
             }
-        }]
+        },
+        getLoginPath : function() {
+            return loginPath;
+        },
+        login: function() {
+            var provider = new firebase.auth.GoogleAuthProvider();
+            fbAuth.signInWithPopup(provider);
+        },
+        logout: function() {
+            appUser = null;
+            fbAuth.signOut();
+            //$scope.$apply();
+        }
     };
-    this.$get = ["$location", function ($location) {
-        return {
-            login: function() {
-                var aa = $location;
-                var provider = new firebase.auth.GoogleAuthProvider();
-                fbAuth.signInWithPopup(provider);
-            },
-            logout: function() {
-                appUser = null;
-                fbAuth.signOut();
-                $location.path(loginPath);
-            },
-            getLoginPath: function() {
-                return loginPath;
-            },
-            user : appUser
-        };
-    }];
-};
+});
