@@ -16,8 +16,6 @@ angular.module('myApp.view1', ['ngRoute', 'fbAuth'])
 
 .run(function($rootScope, $location, authService) {
     $rootScope.$on('$fbAuthStateChanged', function (event, changed) {
-        console.log("View1Ctrl.$fbAuthStateChanged " + $location.path() + "??" + changed);
-        console.log(changed);
         if (changed && $location.path() == authService.getLoginPath()) {
             console.log("View1Ctrl.$loginSuccess apply")
             $rootScope.$apply(function() {
@@ -29,7 +27,6 @@ angular.module('myApp.view1', ['ngRoute', 'fbAuth'])
 
 .controller('View1Ctrl', function($scope, $rootScope, $location, authService, user) {
     console.log('View1Ctrl');
-    console.log(user);
     if (user) {
         $location.path("/view2");
     }

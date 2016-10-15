@@ -11,21 +11,25 @@ angular.module('fbAuth', ['ngRoute'])
 })
 
 .factory("authService", function($rootScope, $q){
-    console.log("fbAuth factory");
+
+    var str = "firebase.auth.GoogleAuthProvider";
+    console.log(window[str]);
+    console.log(eval(str));
+
+    console.log("authService init");
 
     var appUser, deferred, isChecked, skipUserCheck;
     var loginPath = '/login';
     var fbAuth = firebase.auth();
 
     fbAuth.onAuthStateChanged(function(fbUser) {
-        console.log("fbAuth.onAuthStateChanged: " + (fbUser != null));
+        console.log("authService.onAuthStateChanged: " + (fbUser != null));
         appUser = fbUser ? {
             uid: fbUser.uid,
             email: fbUser.email,
             photoURL: fbUser.photoURL,
             displayName: fbUser.displayName
         } : null;
-        console.log(appUser);
         if (deferred) {
             if (fbUser) {
                 deferred.resolve(appUser);
@@ -39,8 +43,11 @@ angular.module('fbAuth', ['ngRoute'])
         isChecked = true;
         $rootScope.$emit('$fbAuthStateChanged', appUser);
     }, function(err) {
-        console.log("auth error");
+        console.log("authService.onAuthStateChanged error");
         console.log(err);
+        if (deferred) {
+            deferred.reject("notLoggedIn");
+        }
     });
 
     return {
@@ -77,4 +84,42 @@ angular.module('fbAuth', ['ngRoute'])
             //$scope.$apply();
         }
     };
-});
+})
+
+.directive("authButton", function() {
+    return {
+        restrict: 'A',   // 'A' is the default, so you could remove this line
+        link: function (scope, element, attrs) {
+            var providerFn = eval(attrs.providerClass);
+            var scopes = scope.$eval(attrs.scopes);
+            var customParams = scope.$eval(attrs.customParams);
+            var provider = new providerFn();
+            if (scopes) {
+                console.log("authButton.scopes:");
+                console.log(scopes);
+                provider.addScope(scopes);
+            }
+            if (customParams) {
+                console.log("authButton.customParams:");
+                console.log(customParams);
+                provider.setCustomParameters({
+                  'login_hint': 'user@example.com'
+                });
+            }
+            element.on('click', function() {
+                firebase.auth().signInWithPopup(provider);
+            });
+        }
+    };
+})
+
+var FirebaseProviderFactory = function() {
+};
+
+var AuthProviderFactory = function() {
+    var providerMap = {};
+    this.registerType = function(type, providerFunction) {
+
+    };
+}
+;

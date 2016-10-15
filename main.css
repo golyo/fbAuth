@@ -16,7 +16,7 @@
     flex-direction: column;
 }
 
-#sign-in-button {
+.sign-in-button {
     color: inherit;
     margin-left: 10px;
 }
