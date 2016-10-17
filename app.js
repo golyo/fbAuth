@@ -9,9 +9,9 @@ angular.module('myApp', [
   'myApp.view3'
 ])
 
-.run(function($rootScope, $location, authService) {
+.run(function($rootScope, $location, $auth) {
     $rootScope.logout = function() {
-        authService.logout();
+        $auth.logout();
         $location.path("/login");
     };
 

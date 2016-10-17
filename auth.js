@@ -1,90 +1,16 @@
 
 angular.module('fbAuth', ['ngRoute'])
 
-.run(function($rootScope, $location, authService) {
+.run(function($rootScope, $location, $auth) {
     $rootScope.$on('$routeChangeError', function (event, current, previous, rejection) {
         console.log("$routeChangeError, Rejection reason: " + rejection);
-        if ("notLoggedIn" == rejection && current.originalPath != authService.getLoginPath()) {
-            $location.path(authService.getLoginPath());
+        if ("notLoggedIn" == rejection && current.originalPath != $auth.getLoginPath()) {
+            $location.path($auth.getLoginPath());
         }
     });
 })
 
-.factory("authService", function($rootScope, $q){
-
-    var str = "firebase.auth.GoogleAuthProvider";
-    console.log(window[str]);
-    console.log(eval(str));
-
-    console.log("authService init");
-
-    var appUser, deferred, isChecked, skipUserCheck;
-    var loginPath = '/login';
-    var fbAuth = firebase.auth();
-
-    fbAuth.onAuthStateChanged(function(fbUser) {
-        console.log("authService.onAuthStateChanged: " + (fbUser != null));
-        appUser = fbUser ? {
-            uid: fbUser.uid,
-            email: fbUser.email,
-            photoURL: fbUser.photoURL,
-            displayName: fbUser.displayName
-        } : null;
-        if (deferred) {
-            if (fbUser) {
-                deferred.resolve(appUser);
-            } else if (skipUserCheck) {
-                deferred.resolve(null);
-            } else {
-                deferred.reject("notLoggedIn");
-            }
-            deferred = null;
-        }
-        isChecked = true;
-        $rootScope.$emit('$fbAuthStateChanged', appUser);
-    }, function(err) {
-        console.log("authService.onAuthStateChanged error");
-        console.log(err);
-        if (deferred) {
-            deferred.reject("notLoggedIn");
-        }
-    });
-
-    return {
-        getUser: function(skipCheck) {
-            if (isChecked) {
-                if (appUser) {
-                    console.log("user already logged in ");
-                    return appUser;
-                } else {
-                    console.log("user not logged in " + skipCheck);
-                    if (skipCheck) {
-                        return null;
-                    } else {
-                        throw "notLoggedIn";
-                    }
-                }
-            } else {
-                console.log("wait for auth result");
-                skipUserCheck = skipCheck;
-                deferred = $q.defer();
-                return deferred.promise;
-            }
-        },
-        getLoginPath : function() {
-            return loginPath;
-        },
-        login: function() {
-            var provider = new firebase.auth.GoogleAuthProvider();
-            fbAuth.signInWithPopup(provider);
-        },
-        logout: function() {
-            appUser = null;
-            fbAuth.signOut();
-            //$scope.$apply();
-        }
-    };
-})
+.provider('$auth', authProvider)
 
 .directive("authButton", function() {
     return {
@@ -111,15 +37,78 @@ angular.module('fbAuth', ['ngRoute'])
             });
         }
     };
-})
+});
 
-var FirebaseProviderFactory = function() {
-};
 
-var AuthProviderFactory = function() {
-    var providerMap = {};
-    this.registerType = function(type, providerFunction) {
+function authProvider() {
+    console.log("init authProvider");
+    var appUser, deferred, isChecked, skipUserCheck;
+    var loginPath = '/login';
+    var fbAuth = firebase.auth();
+    this.$get = ["$rootScope", "$q", function($rootScope, $q){
+         console.log("authService init");
 
-    };
+         fbAuth.onAuthStateChanged(function(fbUser) {
+              console.log("authService.onAuthStateChanged: " + (fbUser != null));
+              appUser = fbUser ? {
+                   uid: fbUser.uid,
+                   email: fbUser.email,
+                   photoURL: fbUser.photoURL,
+                   displayName: fbUser.displayName
+              } : null;
+              if (deferred) {
+                   if (fbUser) {
+                       deferred.resolve(appUser);
+                   } else if (skipUserCheck) {
+                       deferred.resolve(null);
+                   } else {
+                       deferred.reject("notLoggedIn");
+                   }
+                   deferred = null;
+              }
+              isChecked = true;
+              $rootScope.$emit('$fbAuthStateChanged', appUser);
+         }, function(err) {
+              console.log("authService.onAuthStateChanged error");
+              console.log(err);
+              if (deferred) {
+                   deferred.reject("notLoggedIn");
+              }
+         });
+
+         return {
+              userPromise: function(skipCheck) {
+                   if (isChecked) {
+                        if (appUser) {
+                             console.log("user already logged in ");
+                             return appUser;
+                        } else {
+                             console.log("user not logged in " + skipCheck);
+                             if (skipCheck) {
+                                  return null;
+                             } else {
+                                  throw "notLoggedIn";
+                             }
+                        }
+                   } else {
+                        console.log("wait for auth result");
+                        skipUserCheck = skipCheck;
+                        deferred = $q.defer();
+                        return deferred.promise;
+                   }
+              },
+              getLoginPath : function() {
+                   return loginPath;
+              },
+              login: function() {
+                   var provider = new firebase.auth.GoogleAuthProvider();
+                   fbAuth.signInWithPopup(provider);
+              },
+              logout: function() {
+                   appUser = null;
+                   fbAuth.signOut();
+                   //$scope.$apply();
+              }
+         };
+     }];
 }
-;
