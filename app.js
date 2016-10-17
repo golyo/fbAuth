@@ -14,6 +14,14 @@ angular.module('myApp', [
         $auth.logout();
         $location.path("/login");
     };
+    $rootScope.$on('$fbAuthStateChanged', function (event, user) {
+        console.log("$fbAuthStateChanged " + (user != null));
+        if (user) {
+            $rootScope.$apply(function() {
+                $location.path("/view2");
+            });
+        }
+    });
 
 })
 

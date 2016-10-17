@@ -8,7 +8,7 @@ angular.module('myApp.view2', ['ngRoute', 'fbAuth'])
         controller: 'View2Ctrl',
         resolve: {
             user: function($auth){
-                return $auth.userPromise();
+                return $auth.userCheckPromise();
             }
         }
     });
