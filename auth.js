@@ -4,7 +4,7 @@ angular.module('fbAuth', ['ngRoute'])
 .run(function($rootScope, $location, $auth) {
     $rootScope.$on('$routeChangeError', function (event, current, previous, rejection) {
         console.log("$routeChangeError, Rejection reason: " + rejection);
-        if ("notLoggedIn" == rejection && current.originalPath != $auth.getLoginPath()) {
+        if (rejection && rejection.code == 401) {
             $location.path($auth.getLoginPath());
         }
     });
@@ -44,6 +44,7 @@ function authProvider() {
     console.log("$authProvider init");
     var appUser, deferred, isChecked, skipUserCheck;
     var loginPath = '/login';
+    var authError = {code:401, message: "Unauthorized"};
     var fbAuth = firebase.auth();
 
     var authPromise = function($q, skipCheck) {
@@ -56,7 +57,7 @@ function authProvider() {
                 if (skipCheck) {
                     return null;
                 } else {
-                    throw "notLoggedIn";
+                    throw authError;
                 }
             }
         } else {
@@ -82,7 +83,7 @@ function authProvider() {
                 } else if (skipUserCheck) {
                     deferred.resolve(null);
                 } else {
-                    deferred.reject("notLoggedIn");
+                    deferred.reject(authError);
                 }
                 deferred = null;
             }
