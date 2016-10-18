@@ -35,11 +35,11 @@ angular.module('myApp', [
      var user = null;
      return {
         setData: function(_user) {
-           user = _user
+            user = _user
         },
         getData: function() {
             console.log("getData");
-           return user;
+            return user;
         }
      }
 })

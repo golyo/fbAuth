@@ -3,7 +3,7 @@ angular.module('fbAuth', ['ngRoute'])
 
 .run(function($rootScope, $location, $auth) {
     $rootScope.$on('$routeChangeError', function (event, current, previous, rejection) {
-        console.log("$routeChangeError, Rejection reason: " + rejection);
+        console.log("$routeChangeError, Rejection reason: " + rejection.code);
         if (rejection && rejection.code == 401) {
             $location.path($auth.getLoginPath());
         }
@@ -40,68 +40,62 @@ angular.module('fbAuth', ['ngRoute'])
 });
 
 
-function authProvider() {
-    console.log("$authProvider init");
-    var appUser, deferred, isChecked, skipUserCheck;
-    var loginPath = '/login';
-    var authError = {code:401, message: "Unauthorized"};
-    var fbAuth = firebase.auth();
 
-    var authPromise = function($q, skipCheck) {
-        if (isChecked) {
-            if (appUser) {
-                console.log("user already logged in ");
-                return appUser;
-            } else {
-                console.log("user not logged in " + skipCheck);
-                if (skipCheck) {
-                    return null;
+function authProvider() {
+    var fbAuth = firebase.auth();
+    var authError = {code:401, message: "Unauthorized"};
+
+    var promiseHandler = {
+        authPromise: function($q, isCheck) {
+            if (promiseHandler.isInitialized) {
+                if (promiseHandler.fbUser) {
+                    console.log("user already logged in ");
+                    return promiseHandler.fbUser;
                 } else {
-                    throw authError;
+                    console.log("user not logged in " + isCheck);
+                    if (isCheck) {
+                        throw authError;
+                    } else {
+                        return null;
+                    }
                 }
+            } else {
+                console.log("wait for auth result");
+                promiseHandler.isCheck = isCheck;
+                promiseHandler.deferred = $q.defer();
+                return promiseHandler.deferred.promise;
             }
-        } else {
-            console.log("wait for auth result");
-            skipUserCheck = skipCheck;
-            deferred = $q.defer();
-            return deferred.promise;
+        },
+        promiseCallback: function(fbUser) {
+            console.log("$auth.onAuthStateChanged: " + (fbUser != null));
+            promiseHandler.isInitialized = true;
+            promiseHandler.fbUser = fbUser;
+            if (promiseHandler.deferred) {
+                if (fbUser) {
+                    promiseHandler.deferred.resolve(fbUser);
+                } else if (promiseHandler.isCheck) {
+                    promiseHandler.deferred.reject(authError);
+                } else {
+                    promiseHandler.deferred.resolve(null);
+                }
+                promiseHandler.deferred = null;
+            }
         }
     };
+    var loginPath = '/login';
+
     this.$get = ["$rootScope", "$q", function($rootScope, $q){
         console.log("$auth.$get init");
         fbAuth.onAuthStateChanged(function(fbUser) {
-            console.log("$auth.onAuthStateChanged: " + (fbUser != null));
-            appUser = fbUser ? {
-                uid: fbUser.uid,
-                email: fbUser.email,
-                photoURL: fbUser.photoURL,
-                displayName: fbUser.displayName
-            } : null;
-            if (deferred) {
-                if (fbUser) {
-                    deferred.resolve(appUser);
-                } else if (skipUserCheck) {
-                    deferred.resolve(null);
-                } else {
-                    deferred.reject(authError);
-                }
-                deferred = null;
-            }
-            isChecked = true;
-            $rootScope.$emit('$fbAuthStateChanged', appUser);
-        }, function(err) {
-            console.log("$auth.onAuthStateChanged error");
-            console.log(err);
-            if (deferred) {
-                deferred.reject("notLoggedIn");
-            }
+            promiseHandler.promiseCallback(fbUser);
+            $rootScope.$emit('$fbAuthStateChanged', fbUser);
         });
         return {
             userPromise: function() {
-                return authPromise($q, true);
+                return promiseHandler.authPromise($q, false);
             },
             userCheckPromise: function() {
-                return authPromise($q, false);
+                return promiseHandler.authPromise($q, true);
             },
             getLoginPath : function() {
                 return loginPath;
@@ -110,9 +104,8 @@ function authProvider() {
                 fbAuth.signInWithPopup(provider);
             },
             logout: function() {
-                appUser = null;
+                promiseHandler.fbUser = null;
                 fbAuth.signOut();
-                //$scope.$apply();
             }
          };
     }];
