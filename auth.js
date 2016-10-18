@@ -42,66 +42,54 @@ angular.module('fbAuth', ['ngRoute'])
 
 function authProvider() {
     console.log("$authProvider init");
-    var appUser, deferred, isChecked, skipUserCheck;
     var loginPath = '/login';
     var authError = {code:401, message: "Unauthorized"};
     var fbAuth = firebase.auth();
 
-    var authPromise = function($q, skipCheck) {
-        if (isChecked) {
-            if (appUser) {
-                console.log("user already logged in ");
-                return appUser;
-            } else {
-                console.log("user not logged in " + skipCheck);
-                if (skipCheck) {
-                    return null;
-                } else {
-                    throw authError;
-                }
-            }
-        } else {
-            console.log("wait for auth result");
-            skipUserCheck = skipCheck;
-            deferred = $q.defer();
-            return deferred.promise;
-        }
+    var authCallback = function(user) {
     };
+
+
     this.$get = ["$rootScope", "$q", function($rootScope, $q){
-        console.log("$auth.$get init");
-        fbAuth.onAuthStateChanged(function(fbUser) {
-            console.log("$auth.onAuthStateChanged: " + (fbUser != null));
-            appUser = fbUser ? {
-                uid: fbUser.uid,
-                email: fbUser.email,
-                photoURL: fbUser.photoURL,
-                displayName: fbUser.displayName
-            } : null;
-            if (deferred) {
-                if (fbUser) {
-                    deferred.resolve(appUser);
-                } else if (skipUserCheck) {
-                    deferred.resolve(null);
-                } else {
-                    deferred.reject(authError);
+
+        _initAuthResolver = function() {
+            return $q(function(resolve) {
+                var off;
+                var callback = function(user) {
+                    console.log("in" + (user != null))
+                    // Turn off this onAuthStateChanged() callback since we just needed to get the authentication data once.
+                    off();
+                    resolve(user);
                 }
-                deferred = null;
-            }
-            isChecked = true;
-            $rootScope.$emit('$fbAuthStateChanged', appUser);
-        }, function(err) {
-            console.log("$auth.onAuthStateChanged error");
-            console.log(err);
-            if (deferred) {
-                deferred.reject("notLoggedIn");
-            }
-        });
+                off = fbAuth.onAuthStateChanged(callback);
+            });
+        };
+
+        var _routerMethodOnAuthPromise = function(rejectIfAuthDataIsNull) {
+
+                  // wait for the initial auth state to resolve; on page load we have to request auth state
+                  // asynchronously so we don't want to resolve router methods or flash the wrong state
+                  return _initAuthResolver().then(function() {
+                    // auth state may change in the future so rather than depend on the initially resolved state
+                    // we also check the auth data (synchronously) if a new promise is requested, ensuring we resolve
+                    // to the current auth state and not a stale/initial state
+                    var authData = fbAuth.currentUser, res = null;
+                    if (rejectIfAuthDataIsNull && authData === null) {
+                      res = $q.reject(authError);
+                    } else {
+                      res = $q.when(authData);
+                    }
+                    return res;
+                  });
+        };
+
+        console.log("$auth.$get init");
         return {
             userPromise: function() {
-                return authPromise($q, true);
+                return _routerMethodOnAuthPromise(false);
             },
             userCheckPromise: function() {
-                return authPromise($q, false);
+                return _routerMethodOnAuthPromise(true);
             },
             getLoginPath : function() {
                 return loginPath;
