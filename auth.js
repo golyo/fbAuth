@@ -2,35 +2,24 @@
 angular.module('fbAuth', ['ngRoute'])
 
 .run(function($rootScope, $location, $auth) {
-    $rootScope.$on('$routeChangeError', function (event, current, previous, rejection) {
-        console.log("$routeChangeError, Rejection reason: " + rejection.code);
-        if (rejection && rejection.code == 401) {
-            $location.path($auth.getLoginPath());
-        }
-    });
 })
 
 .provider('$auth', authProvider)
 
-.directive("authButton", function() {
+.directive("authButton", function($parse) {
     return {
         restrict: 'A',   // 'A' is the default, so you could remove this line
         link: function (scope, element, attrs) {
-            var providerFn = eval(attrs.providerClass);
-            var scopes = scope.$eval(attrs.scopes);
-            var customParams = scope.$eval(attrs.customParams);
+            var providerFn = eval(attrs.providerClass || "firebase.auth.GoogleAuthProvider");
             var provider = new providerFn();
-            if (scopes) {
-                console.log("authButton.scopes:");
-                console.log(scopes);
-                provider.addScope(scopes);
-            }
-            if (customParams) {
-                console.log("authButton.customParams:");
-                console.log(customParams);
-                provider.setCustomParameters({
-                  'login_hint': 'user@example.com'
+            if (attrs.scopes) {
+                angular.forEach(attrs.scopes.split(','), function(value) {
+                    provider.addScope(value.trim());
                 });
+            }
+            var customParams = scope.$eval(attrs.customParams);
+            if (customParams && provider.setCustomParameters) {
+                provider.setCustomParameters(customParams);
             }
             element.on('click', function() {
                 firebase.auth().signInWithPopup(provider);
@@ -82,9 +71,8 @@ function authProvider() {
             }
         }
     };
-    var loginPath = '/login';
 
-    this.$get = ["$rootScope", "$q", function($rootScope, $q){
+    this.$get = ["$rootScope", "$q", "$location", function($rootScope, $q, $location){
         console.log("$auth.$get init");
         fbAuth.onAuthStateChanged(function(fbUser) {
             promiseHandler.promiseCallback(fbUser);
@@ -97,15 +85,20 @@ function authProvider() {
             userCheckPromise: function() {
                 return promiseHandler.authPromise($q, true);
             },
-            getLoginPath : function() {
-                return loginPath;
-            },
             login: function(provider) {
                 fbAuth.signInWithPopup(provider);
             },
             logout: function() {
                 promiseHandler.fbUser = null;
                 fbAuth.signOut();
+            },
+            initUnauthorizedCheck: function(loginPath) {
+                $rootScope.$on('$routeChangeError', function (event, current, previous, rejection) {
+                    console.log("$routeChangeError, Rejection reason: " + rejection.code);
+                    if (rejection && rejection.code == 401) {
+                        $location.path(loginPath);
+                    }
+                });
             }
          };
     }];

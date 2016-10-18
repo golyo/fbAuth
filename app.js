@@ -9,10 +9,11 @@ angular.module('myApp', [
   'myApp.view3'
 ])
 
-.run(function($rootScope, $location, $auth) {
+.run(function($rootScope, $location, $route, $auth) {
+    $auth.initUnauthorizedCheck("/login");
     $rootScope.logout = function() {
         $auth.logout();
-        $location.path("/login");
+        $route.reload();
     };
     $rootScope.$on('$fbAuthStateChanged', function (event, user) {
         console.log("$fbAuthStateChanged " + (user != null));
