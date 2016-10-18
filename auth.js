@@ -6,7 +6,7 @@ angular.module('fbAuth', ['ngRoute'])
 
 .provider('$auth', authProvider)
 
-.directive("authButton", function($parse) {
+.directive("authButton", function($parse, $auth) {
     return {
         restrict: 'A',   // 'A' is the default, so you could remove this line
         link: function (scope, element, attrs) {
@@ -22,7 +22,11 @@ angular.module('fbAuth', ['ngRoute'])
                 provider.setCustomParameters(customParams);
             }
             element.on('click', function() {
-                firebase.auth().signInWithPopup(provider);
+                if (attrs.type == "redirect") {
+                    $auth.signInWithRedirect(provider);
+                } else {
+                    $auth.signInWithPopup(provider);
+                }
             });
         }
     };
@@ -87,11 +91,13 @@ function authProvider() {
             userCheckPromise: function() {
                 return promiseHandler.authPromise($q, true);
             },
-            loginPopup: function(provider) {
+            signInWithPopup: function(provider) {
+                console.log("Login with popup")
                 return fbAuth.signInWithPopup(provider);
             },
-            loginRedirect: function(provider) {
-                return fbAuth.getRedirectResult(provider);
+            signInWithRedirect: function(provider) {
+                console.log("Login with redirect")
+                return fbAuth.signInWithRedirect(provider);
             },
             logout: function() {
                 promiseHandler.fbUser = null;
