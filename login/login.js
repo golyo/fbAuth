@@ -20,14 +20,6 @@ angular.module('myApp.view1', ['ngRoute', 'fbAuth'])
 .controller('View1Ctrl', function($scope, $rootScope, $location, $auth, user) {
     console.log('View1Ctrl');
     if (user) {
-        $location.path("/view2");s
+        $location.path("/view2");
     }
-    $scope.test = function() {
-        firebase.auth().onAuthStateChanged(function(user) {
-            console.log("+++++++++++++++++++++++++++++");
-            console.log(user);
-        });
-    };
-    $scope.login = $auth.login;
-
 });

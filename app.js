@@ -17,7 +17,7 @@ angular.module('myApp', [
     };
     $rootScope.$on('$fbAuthStateChanged', function (event, user) {
         console.log("$fbAuthStateChanged " + (user != null));
-        if (user) {
+        if (user && $location.path() == "/login") {
             $rootScope.$apply(function() {
                 $location.path("/view2");
             });
@@ -28,7 +28,7 @@ angular.module('myApp', [
 
 .config(['$locationProvider', '$routeProvider', function($locationProvider, $routeProvider, $rootScope) {
     $locationProvider.hashPrefix('!');
-    $routeProvider.otherwise({redirectTo: '/login'});
+    $routeProvider.otherwise({redirectTo: '/view3'});
     console.log('myApp.config');
 }])
 
