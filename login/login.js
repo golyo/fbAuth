@@ -1,11 +1,11 @@
 'use strict';
 
-angular.module('myApp.view1', ['ngRoute', 'fbAuth'])
+angular.module('myApp.login', ['ngRoute', 'fbAuth'])
 
 .config(['$routeProvider', '$authProvider', function($routeProvider, $authProvider) {
     $routeProvider.when('/login', {
         templateUrl: 'login/login.html',
-        controller: 'View1Ctrl',
+        controller: 'LoginCtrl',
         resolve: {
             user: function($auth){
                 return $auth.userPromise();
@@ -17,9 +17,9 @@ angular.module('myApp.view1', ['ngRoute', 'fbAuth'])
 .run(function($rootScope, $location, $auth) {
 })
 
-.controller('View1Ctrl', function($scope, $rootScope, $location, $auth, user) {
-    console.log('View1Ctrl');
+.controller('LoginCtrl', function($scope, $rootScope, $location, $auth, user) {
+    console.log('LoginCtrl');
     if (user) {
-        $location.path("/view2");
+        $location.path("/authenticatedView");
     }
 });

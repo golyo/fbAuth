@@ -23,9 +23,9 @@ angular.module('fbAuth', ['ngRoute'])
             }
             element.on('click', function() {
                 if (attrs.type == "redirect") {
-                    $auth.signInWithRedirect(provider);
+                    $auth.getFbAuth().signInWithRedirect(provider);
                 } else {
-                    $auth.signInWithPopup(provider);
+                    $auth.getFbAuth().signInWithPopup(provider);
                 }
             });
         }
@@ -85,19 +85,14 @@ function authProvider() {
             $rootScope.$emit('$fbAuthStateChanged', fbUser);
         });
         return {
+            getFbAuth() {
+                return fbAuth;
+            },
             userPromise: function() {
                 return promiseHandler.authPromise($q, false);
             },
             userCheckPromise: function() {
                 return promiseHandler.authPromise($q, true);
-            },
-            signInWithPopup: function(provider) {
-                console.log("Login with popup")
-                return fbAuth.signInWithPopup(provider);
-            },
-            signInWithRedirect: function(provider) {
-                console.log("Login with redirect")
-                return fbAuth.signInWithRedirect(provider);
             },
             logout: function() {
                 promiseHandler.fbUser = null;

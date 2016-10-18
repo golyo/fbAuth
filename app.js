@@ -4,9 +4,9 @@
 angular.module('myApp', [
   'ngRoute',
   'fbAuth',
-  'myApp.view1',
-  'myApp.view2',
-  'myApp.view3'
+  'myApp.login',
+  'myApp.authenticatedView',
+  'myApp.noAuthView'
 ])
 
 .run(function($rootScope, $location, $route, $auth) {
@@ -19,7 +19,7 @@ angular.module('myApp', [
         console.log("$fbAuthStateChanged " + (user != null));
         if (user && $location.path() == "/login") {
             $rootScope.$apply(function() {
-                $location.path("/view2");
+                $location.path("/authenticatedView");
             });
         }
     });
@@ -28,7 +28,7 @@ angular.module('myApp', [
 
 .config(['$locationProvider', '$routeProvider', function($locationProvider, $routeProvider, $rootScope) {
     $locationProvider.hashPrefix('!');
-    $routeProvider.otherwise({redirectTo: '/view3'});
+    $routeProvider.otherwise({redirectTo: '/noAuthView'});
     console.log('myApp.config');
 }])
 
